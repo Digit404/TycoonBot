@@ -5,17 +5,19 @@ import numpy # for complex maths
 #constants
 WIDTH = 1920
 HEIGHT = 1080
+SCALE = 4
 
 #classes and functions
 class entity:
     def __init__(self):
         self.pos = [500,500]
-        self.size = [40, 80]
-        self.sprite = pygame.image.load("res/SpriteSheet.png").convert()
+        self.size = [16, 16]
+        self.sprite = pygame.image.load("res\SpriteSheet.png")
+        self.sprite = pygame.transform.scale(self.sprite, (self.size[0] * 4 * SCALE, self.size[1] * SCALE))
         self.color = (255,255,255)
 
     def draw(self):
-        pygame.draw.rect(screen, self.color, (self.pos[0], self.pos[1], self.size[0], self.size[1]))
+        screen.blit(self.sprite, (self.pos[0], self.pos[1], self.size[0], self.size[1]), (0,0, self.size[0] * SCALE, self.size[1] * SCALE))
 
 #setup
 clock = pygame.time.Clock()
