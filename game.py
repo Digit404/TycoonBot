@@ -1,5 +1,5 @@
 #! python
-import pygame # pygame FTW
+import pygame as pg # pygame FTW
 import numpy # for complex maths
 from os import path # helps with path finding on multiple OS
 
@@ -16,9 +16,9 @@ class entity:
         self.pos = [500,500]
         self.size = [16 * SCALE, 16 * SCALE]
         self.spriteIndex = 0
-        self.rot = 0
-        self.sprite = pygame.image.load(path.join("res", objectImage))
-        self.sprite = pygame.transform.scale(self.sprite, (self.size[0] * 4, self.size[1]))
+        self.rot = 2
+        self.sprite = pg.image.load(path.join("res", objectImage))
+        self.sprite = pg.transform.scale(self.sprite, (self.size[0] * 4, self.size[1]))
         self.color = (255,255,255)
 
     def draw(self):
@@ -44,19 +44,52 @@ class player(entity):
     def __init__(self, objectImage):
         super().__init__(objectImage)
 
+class map:
+    def __init__(self, tileImage):
+        self.tilesize = 8 * SCALE
+        self.tilesheet = pg.image.load(path.join("res", tileImage))
+        print(self.tilesheet.get_rect()[2] // (self.tilesize // SCALE))
+        self.numtex = self.tilesheet.get_rect()[2] // (self.tilesize // SCALE)
+        self.textures = {}
+        for i in range(self.numtex):
+            self.textures[i] = pg.transform.scale(
+                self.tilesheet.subsurface(
+                    0 + (i * self.tilesize // SCALE),
+                    0,
+                    self.tilesize // SCALE,
+                    self.tilesize // SCALE
+                ), 
+                (
+                    self.tilesize, 
+                    self.tilesize
+                )
+            )
+        self.tilemap = []
+
+    def draw(self):
+        for row in range(len(self.tilemap)):
+            for column in range(len(self.tilemap[row])):
+                screen.blit(self.textures[self.tilemap[row][column]], (column*self.tilesize, row*self.tilesize))
 
 #setup
-clock = pygame.time.Clock()
-screen = pygame.display.set_mode((WIDTH, HEIGHT), pygame.FULLSCREEN)
-pygame.display.set_caption("March")
+clock = pg.time.Clock()
+screen = pg.display.set_mode((WIDTH, HEIGHT), pg.FULLSCREEN)
+pg.display.set_caption("March")
 
 joystick = 0 # eight bit number each bit corresponding to a button, w, a, s, d,
 
 player = player("SpriteSheet.png")
 
+map1 = map("tiles.png")
+map1.tilemap = [
+    [0,0,1,0],
+    [0,1,0,1]
+]
+
 #Funciton for drawing window
 def draw_window():
     screen.fill((104, 192, 72))
+    map1.draw()
     player.draw()
 
 # THE LOOP
@@ -66,30 +99,30 @@ def main():
         #Set FPS
         clock.tick(FPS)
         # Event handling 
-        for event in pygame.event.get():
-            if event.type == pygame.QUIT: 
-                pygame.quit()
+        for event in pg.event.get():
+            if event.type == pg.QUIT: 
+                pg.quit()
                 exit()
-            if event.type == pygame.KEYDOWN: 
-                if event.key == pygame.K_ESCAPE:
-                    pygame.quit()
+            if event.type == pg.KEYDOWN: 
+                if event.key == pg.K_ESCAPE:
+                    pg.quit()
                     exit()
-                if event.key == pygame.K_w:
+                if event.key == pg.K_w:
                     joystick |= 1
-                if event.key == pygame.K_a:
+                if event.key == pg.K_a:
                     joystick |= 2
-                if event.key == pygame.K_s:
+                if event.key == pg.K_s:
                     joystick |= 4
-                if event.key == pygame.K_d:
+                if event.key == pg.K_d:
                     joystick |= 8
-            elif event.type == pygame.KEYUP:
-                if event.key == pygame.K_w:
+            elif event.type == pg.KEYUP:
+                if event.key == pg.K_w:
                     joystick &= ~1
-                if event.key == pygame.K_a:
+                if event.key == pg.K_a:
                     joystick &= ~2
-                if event.key == pygame.K_s:
+                if event.key == pg.K_s:
                     joystick &= ~4
-                if event.key == pygame.K_d:
+                if event.key == pg.K_d:
                     joystick &= ~8
 
         #input
@@ -110,7 +143,7 @@ def main():
 
         draw_window()
 
-        pygame.display.flip()
+        pg.display.flip()
         
 
 if __name__ == "__main__":
