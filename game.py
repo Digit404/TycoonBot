@@ -73,20 +73,28 @@ class map:
         '''Draws the tilemap'''
         for row in range(len(self.tilemap)):
             for column in range(len(self.tilemap[row])):
-                screen.blit(
-                    self.textures[
-                        int(self.tilemap[row][column])
-                    ], 
-                    (
-                        column * self.tilesize + cameraPos[0], 
-                        row * self.tilesize + cameraPos[1]
+                if tileIsVisible(column, row):
+                    screen.blit(
+                        self.textures[
+                            int(self.tilemap[row][column])
+                        ], 
+                        (
+                            column * self.tilesize + cameraPos[0], 
+                            row * self.tilesize + cameraPos[1]
+                        )
                     )
-                )
 
 #Funciton for drawing window
 def draw_window():
+    screen.fill((0,0,0))
     map1.draw()
     player.draw()
+
+def tileIsVisible(x,y):
+    if -cameraPos[0] + WIDTH> x * TILESIZE * SCALE > -cameraPos[0] - TILESIZE * SCALE and -cameraPos[1] + HEIGHT > y * TILESIZE * SCALE > -cameraPos[1] - TILESIZE * SCALE:
+        return True
+    else:
+        return False
 
 #setup
 clock = pg.time.Clock()
@@ -101,8 +109,6 @@ cameraPos = [0,0]
 map1 = map("tiles.png")
 with open(path.join("res", "Map.csv")) as mapfile:
     map1.tilemap = list(csv.reader(mapfile))
-        
-print(map1.tilemap)
 
 # THE LOOP
 def main():
