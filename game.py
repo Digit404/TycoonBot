@@ -11,16 +11,39 @@ FPS = 60
 
 #classes and functions
 class entity:
+    '''Any entity'''
     def __init__(self, objectImage):
         self.pos = [500,500]
-        self.size = [16, 16]
+        self.size = [16 * SCALE, 16 * SCALE]
+        self.spriteIndex = 0
+        self.rot = 0
         self.sprite = pygame.image.load(path.join("res", objectImage))
-        self.sprite = pygame.transform.scale(self.sprite, (self.size[0] * 4 * SCALE, self.size[1] * SCALE))
+        self.sprite = pygame.transform.scale(self.sprite, (self.size[0] * 4, self.size[1]))
         self.color = (255,255,255)
 
     def draw(self):
-        screen.blit(self.sprite, (self.pos[0], self.pos[1], self.size[0], self.size[1]), (0,0, self.size[0] * SCALE, self.size[1] * SCALE))
-        
+        '''Draws the entity'''
+        self.spriteIndex = self.rot
+        screen.blit(
+            self.sprite, 
+            (
+                self.pos[0], 
+                self.pos[1], 
+                self.size[0], 
+                self.size[1]
+            ), 
+            (
+                0 + self.spriteIndex * self.size[0],
+                0, 
+                self.size[0], 
+                self.size[1]
+            )
+        )
+
+class player(entity):
+    def __init__(self, objectImage):
+        super().__init__(objectImage)
+
 
 #setup
 clock = pygame.time.Clock()
@@ -29,7 +52,7 @@ pygame.display.set_caption("March")
 
 joystick = 0 # eight bit number each bit corresponding to a button, w, a, s, d,
 
-player = entity("SpriteSheet.png")
+player = player("SpriteSheet.png")
 
 #Funciton for drawing window
 def draw_window():
@@ -71,19 +94,24 @@ def main():
 
         #input
         if joystick & 1:
+            player.rot = 0
             player.pos[1] -= 5
         if joystick & 2:
+            player.rot = 1
             player.pos[0] -= 5
         if joystick & 4:
+            player.rot = 2
             player.pos[1] += 5
         if joystick & 8:
+            player.rot = 3
             player.pos[0] += 5
+
+        player.spriteIndex = (player.spriteIndex + 1) % 4
 
         draw_window()
 
         pygame.display.flip()
         
-
 
 if __name__ == "__main__":
     main()
