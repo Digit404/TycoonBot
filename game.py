@@ -15,8 +15,8 @@ FPS = 60
 class entity:
     '''Any entity'''
     def __init__(self, objectImage):
-        self.pos = [500,500]
         self.size = [2 * TILESIZE * SCALE, 2 * TILESIZE * SCALE]
+        self.pos = [WIDTH // 2 - self.size[0] // 2,HEIGHT // 2 - self.size[1] // 2]
         self.spriteIndex = 0 # index of the sprite you want to display
         self.rot = 2 # players facing
         self.sprite = pg.image.load(path.join("res", objectImage))
@@ -73,11 +73,18 @@ class map:
         '''Draws the tilemap'''
         for row in range(len(self.tilemap)):
             for column in range(len(self.tilemap[row])):
-                screen.blit(self.textures[int(self.tilemap[row][column])], (column*self.tilesize, row*self.tilesize))
+                screen.blit(
+                    self.textures[
+                        int(self.tilemap[row][column])
+                    ], 
+                    (
+                        column * self.tilesize + cameraPos[0], 
+                        row * self.tilesize + cameraPos[1]
+                    )
+                )
 
 #Funciton for drawing window
 def draw_window():
-    screen.fill((104, 192, 72))
     map1.draw()
     player.draw()
 
@@ -133,16 +140,16 @@ def main():
         #input
         if joystick & 1:
             player.rot = 0
-            player.pos[1] -= 5
+            cameraPos[1] += 8
         if joystick & 2:
             player.rot = 1
-            player.pos[0] -= 5
+            cameraPos[0] += 8
         if joystick & 4:
             player.rot = 2
-            player.pos[1] += 5
+            cameraPos[1] -= 8
         if joystick & 8:
             player.rot = 3
-            player.pos[0] += 5
+            cameraPos[0] -= 8
 
         player.spriteIndex = (player.spriteIndex + 1) % 4
 
