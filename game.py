@@ -2,10 +2,12 @@
 import pygame as pg # pygame FTW
 import numpy # for complex maths
 from os import path # helps with path finding on multiple OS
+import csv # for reading csv files
 
 #constants
 WIDTH = 1920
 HEIGHT = 1080
+TILESIZE = 8
 SCALE = 4
 FPS = 60
 
@@ -14,9 +16,9 @@ class entity:
     '''Any entity'''
     def __init__(self, objectImage):
         self.pos = [500,500]
-        self.size = [16 * SCALE, 16 * SCALE]
-        self.spriteIndex = 0
-        self.rot = 2
+        self.size = [2 * TILESIZE * SCALE, 2 * TILESIZE * SCALE]
+        self.spriteIndex = 0 # index of the sprite you want to display
+        self.rot = 2 # players facing
         self.sprite = pg.image.load(path.join("res", objectImage))
         self.sprite = pg.transform.scale(self.sprite, (self.size[0] * 4, self.size[1]))
         self.color = (255,255,255)
@@ -41,14 +43,15 @@ class entity:
         )
 
 class player(entity):
+    '''The player'''
     def __init__(self, objectImage):
         super().__init__(objectImage)
 
 class map:
+    '''A tilemap class'''
     def __init__(self, tileImage):
         self.tilesize = 8 * SCALE
         self.tilesheet = pg.image.load(path.join("res", tileImage))
-        print(self.tilesheet.get_rect()[2] // (self.tilesize // SCALE))
         self.numtex = self.tilesheet.get_rect()[2] // (self.tilesize // SCALE)
         self.textures = {}
         for i in range(self.numtex):
@@ -67,9 +70,16 @@ class map:
         self.tilemap = []
 
     def draw(self):
+        '''Draws the tilemap'''
         for row in range(len(self.tilemap)):
             for column in range(len(self.tilemap[row])):
-                screen.blit(self.textures[self.tilemap[row][column]], (column*self.tilesize, row*self.tilesize))
+                screen.blit(self.textures[int(self.tilemap[row][column])], (column*self.tilesize, row*self.tilesize))
+
+#Funciton for drawing window
+def draw_window():
+    screen.fill((104, 192, 72))
+    map1.draw()
+    player.draw()
 
 #setup
 clock = pg.time.Clock()
@@ -79,18 +89,13 @@ pg.display.set_caption("March")
 joystick = 0 # eight bit number each bit corresponding to a button, w, a, s, d,
 
 player = player("SpriteSheet.png")
+cameraPos = [0,0]
 
 map1 = map("tiles.png")
-map1.tilemap = [
-    [0,0,1,0],
-    [0,1,0,1]
-]
-
-#Funciton for drawing window
-def draw_window():
-    screen.fill((104, 192, 72))
-    map1.draw()
-    player.draw()
+with open(path.join("res", "Map.csv")) as mapfile:
+    map1.tilemap = list(csv.reader(mapfile))
+        
+print(map1.tilemap)
 
 # THE LOOP
 def main():
