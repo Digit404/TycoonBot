@@ -5,40 +5,57 @@ from os import path # helps with path finding on multiple OS
 import csv # for reading csv files
 
 #constants
-WIDTH = 1920
+WIDTH = 1920 
+'''Screen width'''
 HEIGHT = 1080
+'''Screen height'''
 TILESIZE = 8
+'''Size of a tile in pixels'''
 SCALE = 4
+'''Scale of the game'''
 FPS = 60
+'''FPS of the game'''
 
 #classes and functions
 class entity:
     '''Any entity'''
-    def __init__(self, objectImage):
+    def __init__(self, objectImage:str):
         self.size = [2 * TILESIZE * SCALE, 2 * TILESIZE * SCALE]
-        self.pos = [WIDTH // 2 - self.size[0] // 2,HEIGHT // 2 - self.size[1] // 2]
-        self.spriteIndex = 0 # index of the sprite you want to display
-        self.rot = 2 # players facing
-        self.sprite = pg.image.load(path.join("res", objectImage))
-        self.sprite = pg.transform.scale(self.sprite, (self.size[0] * 4, self.size[1]))
-        self.color = (255,255,255)
+        '''The size of the entity. Default 2 tiles wide and tall'''
+        self.pos = [WIDTH // 2 - self.size[0] // 2, HEIGHT // 2 - self.size[1] // 2]
+        '''The position of the entity. Default center of the screen'''
+        self.spriteIndex = [0,0]
+        '''Direction the entity is facing, Default 2 (South)'''
+        self.sprite = pg.image.load(
+            path.join(
+                "res", 
+                objectImage
+            )
+        )
+        '''The image of the entity'''
+        self.sprite = pg.transform.scale(
+            self.sprite, 
+            ( # Tring to get the size of the scaled up image. Get the size, which is 64 by default multiply it by the number of sprites in the image
+                self.size[0] * (self.sprite.get_rect()[2] // TILESIZE // (self.size[0] // TILESIZE // SCALE)), # which is calculated here
+                self.size[1] * (self.sprite.get_rect()[3] // TILESIZE // (self.size[1] // TILESIZE // SCALE))
+            )
+        )
 
     def draw(self):
         '''Draws the entity'''
-        self.spriteIndex = self.rot
-        screen.blit(
-            self.sprite, 
-            (
-                self.pos[0], 
-                self.pos[1], 
-                self.size[0], 
-                self.size[1]
+        screen.blit( # Draw
+            self.sprite, # Entities sprite
+            ( # Sprite position
+                self.pos[0], # x
+                self.pos[1], # y
+                self.size[0], # width
+                self.size[1] # width
             ), 
-            (
-                0 + self.spriteIndex * self.size[0],
-                0, 
-                self.size[0], 
-                self.size[1]
+            ( # crop of sprite image
+                self.spriteIndex[0] * self.size[0], # Crop x is the sprite index in the x multiplied by it's size
+                self.spriteIndex[1] * self.size[1], # Crop y is the same but in y
+                self.size[0], # Crop width is size x
+                self.size[1] # Crop height is size y
             )
         )
 
@@ -46,55 +63,87 @@ class player(entity):
     '''The player'''
     def __init__(self, objectImage):
         super().__init__(objectImage)
+    def input(self, world:object):
+        '''Doesn't actually move the player, it moves the camera'''
+        if joystick & 1 and joystick & 2 == 2:
+            self.spriteIndex = [1,1]
+            cameraPos[1] -= SCALE * 1.4
+            cameraPos[0] -= SCALE * 1.4
+        elif joystick & 2 == 2 and joystick & 4 == 4:
+            self.spriteIndex = [3,1]
+            cameraPos[1] += SCALE * 1.4
+            cameraPos[0] -= SCALE * 1.4
+        elif joystick & 4 == 4 and joystick & 8 == 8:
+            self.spriteIndex = [1,0]
+            cameraPos[1] += SCALE * 1.4 
+            cameraPos[0] += SCALE * 1.4 
+        elif joystick & 8 == 8 and joystick & 1 == 1:
+            self.spriteIndex = [3,0]
+            cameraPos[1] -= SCALE * 1.4 
+            cameraPos[0] += SCALE * 1.4 
+        elif joystick & 1: # moving up
+            self.spriteIndex = [0,1]
+            cameraPos[1] -= SCALE * 2
+        elif joystick & 2: # moving west
+            self.spriteIndex = [2,1]
+            cameraPos[0] -= SCALE * 2
+        elif joystick & 4: # moving south
+            self.spriteIndex = [0,0]
+            cameraPos[1] += SCALE * 2
+        elif joystick & 8: # moving east
+            self.spriteIndex = [2,0]
+            cameraPos[0] += SCALE * 2
 
-class map:
+class world:
     '''A tilemap class'''
     def __init__(self, tileImage):
-        self.tilesize = 8 * SCALE
+        '''Size of the tiles that map uses'''
         self.tilesheet = pg.image.load(path.join("res", tileImage))
-        self.numtex = self.tilesheet.get_rect()[2] // (self.tilesize // SCALE)
+        '''Tilesheet containing the images'''
+        self.size = [self.tilesheet.get_rect()[2] // TILESIZE, self.tilesheet.get_rect()[3] // TILESIZE]
+        self.LayerMap1 = []
+        self.LayerMap2 = []
+        self.collisionMap = []
         self.textures = {}
-        for i in range(self.numtex):
-            self.textures[i] = pg.transform.scale(
-                self.tilesheet.subsurface(
-                    0 + (i * self.tilesize // SCALE),
-                    0,
-                    self.tilesize // SCALE,
-                    self.tilesize // SCALE
-                ), 
-                (
-                    self.tilesize, 
-                    self.tilesize
-                )
-            )
-        self.tilemap = []
-
-    def draw(self):
-        '''Draws the tilemap'''
-        for row in range(len(self.tilemap)):
-            for column in range(len(self.tilemap[row])):
-                if tileIsVisible(column, row):
-                    screen.blit(
-                        self.textures[
-                            int(self.tilemap[row][column])
-                        ], 
-                        (
-                            column * self.tilesize + cameraPos[0], 
-                            row * self.tilesize + cameraPos[1]
-                        )
+        for row in range(self.size[1]):
+            for column in range(self.size[0]):
+                self.textures[self.size[0] * row + column] = pg.transform.scale(
+                    self.tilesheet.subsurface(
+                        (column * TILESIZE),
+                        (row * TILESIZE),
+                        TILESIZE,
+                        TILESIZE
+                    ), 
+                    (
+                        TILESIZE * SCALE, 
+                        TILESIZE * SCALE
                     )
+                )
+
+    def drawMap(self, map:list):
+        '''Draws the tilemap'''
+        for row in range(int(cameraPos[1]) // TILESIZE // SCALE, (HEIGHT + TILESIZE * SCALE + int(cameraPos[1])) // TILESIZE // SCALE):
+            for column in range(int(cameraPos[0]) // TILESIZE // SCALE, (WIDTH + TILESIZE * SCALE + int(cameraPos[0])) // TILESIZE // SCALE):
+                try:
+                    if int(map[row][column]) != 0:
+                        screen.blit(
+                            self.textures[
+                                int(map[row][column])
+                            ], 
+                            (
+                                column * TILESIZE * SCALE - cameraPos[0], 
+                                row * TILESIZE * SCALE - cameraPos[1]
+                            )
+                        )
+                except:
+                    pass
 
 #Funciton for drawing window
 def draw_window():
-    screen.fill((0,0,0))
-    map1.draw()
+    screen.fill((104, 192, 72))
+    world1.drawMap(world1.LayerMap1)
     player.draw()
-
-def tileIsVisible(x,y):
-    if -cameraPos[0] + WIDTH> x * TILESIZE * SCALE > -cameraPos[0] - TILESIZE * SCALE and -cameraPos[1] + HEIGHT > y * TILESIZE * SCALE > -cameraPos[1] - TILESIZE * SCALE:
-        return True
-    else:
-        return False
+    world1.drawMap(world1.LayerMap2)
 
 #setup
 clock = pg.time.Clock()
@@ -106,9 +155,16 @@ joystick = 0 # eight bit number each bit corresponding to a button, w, a, s, d,
 player = player("SpriteSheet.png")
 cameraPos = [0,0]
 
-map1 = map("tiles.png")
-with open(path.join("res", "Map.csv")) as mapfile:
-    map1.tilemap = list(csv.reader(mapfile))
+world1 = world("tiles.png")
+
+with open(path.join("res", "maps", "tycoon-map_layer1.csv")) as layer1file:
+    world1.LayerMap1 = list(csv.reader(layer1file))
+
+with open(path.join("res", "maps", "tycoon-map_layer2.csv")) as layer2file:
+    world1.LayerMap2 = list(csv.reader(layer2file))
+
+with open(path.join("res", "maps", "tycoon-map_collision.csv")) as collisionFile:
+    world1.collisionMap = list(csv.reader(collisionFile))
 
 # THE LOOP
 def main():
@@ -144,20 +200,7 @@ def main():
                     joystick &= ~8
 
         #input
-        if joystick & 1:
-            player.rot = 0
-            cameraPos[1] += 8
-        if joystick & 2:
-            player.rot = 1
-            cameraPos[0] += 8
-        if joystick & 4:
-            player.rot = 2
-            cameraPos[1] -= 8
-        if joystick & 8:
-            player.rot = 3
-            cameraPos[0] -= 8
-
-        player.spriteIndex = (player.spriteIndex + 1) % 4
+        player.input(world1)
 
         draw_window()
 
