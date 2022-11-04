@@ -31,12 +31,7 @@ class entity:
         '''The relatve position of the entity to the camera. Default center of the screen'''
         self.spriteIndex = [0,0]
         '''Direction the entity is facing, Default 2 (South)'''
-        self.sprite = pg.image.load(
-            path.join(
-                "res", 
-                objectImage
-            )
-        )
+        self.sprite = pg.image.load(path.join("res", "img", objectImage))
         '''The image of the entity'''
         self.sprite = pg.transform.scale(
             self.sprite, 
@@ -105,7 +100,7 @@ class world:
     '''A tilemap class'''
     def __init__(self, tileImage):
         '''Size of the tiles that map uses'''
-        self.tilesheet = pg.image.load(path.join("res", tileImage))
+        self.tilesheet = pg.image.load(path.join("res", "img", tileImage))
         '''Tilesheet containing the images'''
         self.tilesheetSize = [self.tilesheet.get_rect()[2] // TILESIZE, self.tilesheet.get_rect()[3] // TILESIZE]
         '''How many tiles across and down the tilesheet is'''
@@ -166,10 +161,10 @@ pg.display.set_caption("March")
 
 joystick = 0 # eight bit number each bit corresponding to a button, w, a, s, d,
 
-tycoonBot = player("SpriteSheet.png")
+tycoonBot = player("TycoonBotSheet.png")
 cameraPos = [0,0]
 
-world1 = world("tiles.png")
+world1 = world("TileSheet.png")
 
 with open(path.join("res", "maps", "tycoon-map_layer1.csv")) as layer1file:
     world1.LayerMap1 = list(csv.reader(layer1file))
@@ -192,32 +187,34 @@ def main():
                 pg.quit()
                 exit()
             if event.type == pg.KEYDOWN: 
-                if event.key == pg.K_ESCAPE:
-                    pg.quit()
-                    exit()
-                if event.key == pg.K_w:
-                    joystick |= 1
-                if event.key == pg.K_a:
-                    joystick |= 2
-                if event.key == pg.K_s:
-                    joystick |= 4
-                if event.key == pg.K_d:
-                    joystick |= 8
+                match(event.key):
+                    case pg.K_ESCAPE:
+                        pg.quit()
+                        exit()
+                    case pg.K_w:
+                        joystick |= 1
+                    case pg.K_a:
+                        joystick |= 2
+                    case pg.K_s:
+                        joystick |= 4
+                    case pg.K_d:
+                        joystick |= 8
             elif event.type == pg.KEYUP:
-                if event.key == pg.K_w:
-                    joystick &= ~1
-                if event.key == pg.K_a:
-                    joystick &= ~2
-                if event.key == pg.K_s:
-                    joystick &= ~4
-                if event.key == pg.K_d:
-                    joystick &= ~8
+                match(event.key):
+                    case pg.K_w:
+                        joystick &= ~1
+                    case pg.K_a:
+                        joystick &= ~2
+                    case pg.K_s:
+                        joystick &= ~4
+                    case pg.K_d:
+                        joystick &= ~8
 
         #input
         tycoonBot.input(world1)
 
         cameraTrack(tycoonBot) # Camera on TycoonBot
-        
+
         draw_window()
 
         pg.display.flip()
