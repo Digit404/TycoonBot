@@ -22,8 +22,13 @@ class entity:
     def __init__(self, objectImage:str):
         self.size = [2 * TILESIZE * SCALE, 2 * TILESIZE * SCALE]
         '''The size of the entity. Default 2 tiles wide and tall'''
-        self.pos = [WIDTH // 2 - self.size[0] // 2, HEIGHT // 2 - self.size[1] // 2]
-        '''The position of the entity. Default center of the screen'''
+        self.posAbsolute = [50,50]
+        '''The absolute'''
+        self.posRelative = [
+            (WIDTH // TILESIZE // SCALE // 2 - self.size[0] // TILESIZE // SCALE // 2) * TILESIZE * SCALE, 
+            (HEIGHT // TILESIZE // SCALE // 2 - self.size[1] // TILESIZE // SCALE // 2) * TILESIZE * SCALE
+        ]
+        '''The relatve position of the entity to the camera. Default center of the screen'''
         self.spriteIndex = [0,0]
         '''Direction the entity is facing, Default 2 (South)'''
         self.sprite = pg.image.load(
@@ -37,7 +42,7 @@ class entity:
             self.sprite, 
             ( # Tring to get the size of the scaled up image. Get the size, which is 64 by default multiply it by the number of sprites in the image
                 self.size[0] * (self.sprite.get_rect()[2] // TILESIZE // (self.size[0] // TILESIZE // SCALE)), # which is calculated here
-                self.size[1] * (self.sprite.get_rect()[3] // TILESIZE // (self.size[1] // TILESIZE // SCALE))
+                self.size[1] * (self.sprite.get_rect()[3] // TILESIZE // (self.size[1] // TILESIZE // SCALE)) # There's probably a better way to do this
             )
         )
 
@@ -46,12 +51,12 @@ class entity:
         screen.blit( # Draw
             self.sprite, # Entities sprite
             ( # Sprite position
-                self.pos[0], # x
-                self.pos[1], # y
+                self.posRelative[0], # x
+                self.posRelative[1], # y
                 self.size[0], # width
                 self.size[1] # width
             ), 
-            ( # crop of sprite image
+            ( # crop of sprite image; describe a rectangle within the image that you want to display
                 self.spriteIndex[0] * self.size[0], # Crop x is the sprite index in the x multiplied by it's size
                 self.spriteIndex[1] * self.size[1], # Crop y is the same but in y
                 self.size[0], # Crop width is size x
@@ -67,32 +72,34 @@ class player(entity):
         '''Doesn't actually move the player, it moves the camera'''
         if joystick & 1 and joystick & 2 == 2:
             self.spriteIndex = [1,1]
-            cameraPos[1] -= SCALE * 1.4
-            cameraPos[0] -= SCALE * 1.4
+            self.move(-1.4, -1.4)
         elif joystick & 2 == 2 and joystick & 4 == 4:
             self.spriteIndex = [3,1]
-            cameraPos[1] += SCALE * 1.4
-            cameraPos[0] -= SCALE * 1.4
+            self.move(-1.4, 1.4)
         elif joystick & 4 == 4 and joystick & 8 == 8:
             self.spriteIndex = [1,0]
-            cameraPos[1] += SCALE * 1.4 
-            cameraPos[0] += SCALE * 1.4 
+            self.move(1.4, 1.4)
         elif joystick & 8 == 8 and joystick & 1 == 1:
             self.spriteIndex = [3,0]
-            cameraPos[1] -= SCALE * 1.4 
-            cameraPos[0] += SCALE * 1.4 
+            self.move(1.4, -1.4)
         elif joystick & 1: # moving up
             self.spriteIndex = [0,1]
-            cameraPos[1] -= SCALE * 2
+            self.move(0, -2)
         elif joystick & 2: # moving west
             self.spriteIndex = [2,1]
-            cameraPos[0] -= SCALE * 2
+            self.move(-2, 0)
         elif joystick & 4: # moving south
             self.spriteIndex = [0,0]
-            cameraPos[1] += SCALE * 2
+            self.move(0, 2)
         elif joystick & 8: # moving east
             self.spriteIndex = [2,0]
-            cameraPos[0] += SCALE * 2
+            self.move(2, 0)
+        
+    def move(self, x, y):
+        if int(world1.collisionMap[int(self.posAbsolute[1]) // TILESIZE // SCALE][int(self.posAbsolute[0] + x * SCALE) // TILESIZE // SCALE]) == 0:
+            self.posAbsolute[0] += x * SCALE
+        if int(world1.collisionMap[int(self.posAbsolute[1] + y * SCALE) // TILESIZE // SCALE][int(self.posAbsolute[0]) // TILESIZE // SCALE]) == 0:
+            self.posAbsolute[1] += y * SCALE
 
 class world:
     '''A tilemap class'''
@@ -100,17 +107,24 @@ class world:
         '''Size of the tiles that map uses'''
         self.tilesheet = pg.image.load(path.join("res", tileImage))
         '''Tilesheet containing the images'''
-        self.size = [self.tilesheet.get_rect()[2] // TILESIZE, self.tilesheet.get_rect()[3] // TILESIZE]
+        self.tilesheetSize = [self.tilesheet.get_rect()[2] // TILESIZE, self.tilesheet.get_rect()[3] // TILESIZE]
+        '''How many tiles across and down the tilesheet is'''
+        self.backgroundColor = (104, 192, 72)
+        '''Default background color for this world'''
         self.LayerMap1 = []
+        '''Layer 1 that goes under the player'''
         self.LayerMap2 = []
+        '''Layer 2 that goes over the player'''
         self.collisionMap = []
+        '''Map of collision walls'''
         self.textures = {}
-        for row in range(self.size[1]):
-            for column in range(self.size[0]):
-                self.textures[self.size[0] * row + column] = pg.transform.scale(
+        '''A set of all textures from the texture sheet'''
+        for y in range(self.tilesheetSize[1]):
+            for x in range(self.tilesheetSize[0]):
+                self.textures[self.tilesheetSize[0] * y + x] = pg.transform.scale(
                     self.tilesheet.subsurface(
-                        (column * TILESIZE),
-                        (row * TILESIZE),
+                        (x * TILESIZE),
+                        (y * TILESIZE),
                         TILESIZE,
                         TILESIZE
                     ), 
@@ -120,30 +134,30 @@ class world:
                     )
                 )
 
-    def drawMap(self, map:list):
+    def drawMap(self, tilemap:list):
         '''Draws the tilemap'''
-        for row in range(int(cameraPos[1]) // TILESIZE // SCALE, (HEIGHT + TILESIZE * SCALE + int(cameraPos[1])) // TILESIZE // SCALE):
-            for column in range(int(cameraPos[0]) // TILESIZE // SCALE, (WIDTH + TILESIZE * SCALE + int(cameraPos[0])) // TILESIZE // SCALE):
-                try:
-                    if int(map[row][column]) != 0:
-                        screen.blit(
-                            self.textures[
-                                int(map[row][column])
-                            ], 
-                            (
-                                column * TILESIZE * SCALE - cameraPos[0], 
-                                row * TILESIZE * SCALE - cameraPos[1]
-                            )
+        for y in range(int(cameraPos[1]) // TILESIZE // SCALE, (HEIGHT + TILESIZE * SCALE + int(cameraPos[1])) // TILESIZE // SCALE):
+            for x in range(int(cameraPos[0]) // TILESIZE // SCALE, (WIDTH + TILESIZE * SCALE + int(cameraPos[0])) // TILESIZE // SCALE):
+                if 0 <= y < len(tilemap) and 0 <= x < len(tilemap[y]) and int(tilemap[y][x]) != 0:
+                    # if y is greater than 0 and less the y size, and if 0 < x < size of tilemap in x, and the tile isn't 0: place the tile
+                    screen.blit(
+                        self.textures[int(tilemap[y][x])], # y before x because its a list of lists. its (x of y of list)
+                        (
+                            x * TILESIZE * SCALE - cameraPos[0], 
+                            y * TILESIZE * SCALE - cameraPos[1]
                         )
-                except:
-                    pass
+                    )
 
 #Funciton for drawing window
 def draw_window():
-    screen.fill((104, 192, 72))
+    screen.fill(world1.backgroundColor) # start by filling on 
     world1.drawMap(world1.LayerMap1)
-    player.draw()
+    tycoonBot.draw()
     world1.drawMap(world1.LayerMap2)
+
+def cameraTrack(entity:object):
+    cameraPos[0] = entity.posAbsolute[0] - (30 * TILESIZE * SCALE)
+    cameraPos[1] = entity.posAbsolute[1] - (16 * TILESIZE * SCALE)
 
 #setup
 clock = pg.time.Clock()
@@ -152,7 +166,7 @@ pg.display.set_caption("March")
 
 joystick = 0 # eight bit number each bit corresponding to a button, w, a, s, d,
 
-player = player("SpriteSheet.png")
+tycoonBot = player("SpriteSheet.png")
 cameraPos = [0,0]
 
 world1 = world("tiles.png")
@@ -200,8 +214,10 @@ def main():
                     joystick &= ~8
 
         #input
-        player.input(world1)
+        tycoonBot.input(world1)
 
+        cameraTrack(tycoonBot) # Camera on TycoonBot
+        
         draw_window()
 
         pg.display.flip()
